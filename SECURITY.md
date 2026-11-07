@@ -48,3 +48,10 @@ I've set up prototype Security Rules to keep the data in Firestore safe. They ar
   ]
 }
 ```
+
+
+## 소유자 전용 변경
+
+일기장은 초기 HTML부터 잠금 상태이며 Firebase 미설정·로그아웃·오류 시 일기 앱을 실행하지 않습니다. 기존 기기 기록은 자동 업로드하거나 삭제하지 않습니다. 이는 로컬 저장소 암호화가 아니므로 같은 기기의 개발자 도구 접근을 차단하지는 않습니다.
+
+서버 규칙은 관리자가 생성한 privateAccess/owner.uid, 검증된 이메일, Google 제공자, 일기 경로 UID가 모두 일치할 때만 접근을 허용합니다. owner 문서의 모든 클라이언트 쓰기와 목록 조회를 차단했습니다. 본인 외 Google 사용자의 자기 경로 접근, owner 탈취, 이메일 미인증, owner 누락을 추가 검증합니다. 실제 Firebase 배포·관리자 owner 등록은 관리 인증 대기 중입니다.

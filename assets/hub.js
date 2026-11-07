@@ -5,7 +5,7 @@ const builtin = {
   id: "diary",
   name: "나만의 일기장",
   description:
-    "오늘의 작은 순간과 마음을 차곡차곡. 나를 알아가는 가장 다정한 기록.",
+    "본인 Google 계정으로 여는 나만의 일기장. 비공개 로그인 설정을 준비하고 있어요.",
   category: "일상 기록",
   url: "apps/diary/",
 };

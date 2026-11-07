@@ -777,3 +777,9 @@ footer a {
     flex-direction: column;
   }
 }
+
+.access-locked > .sidebar,.access-locked > main,.access-locked > dialog{display:none!important}
+body:not(.access-locked) #access-gate{display:none}
+.access-gate{width:min(520px,92vw);margin:10vh auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:44px;text-align:center}
+.access-gate .brand{display:block;font-size:22px;margin-bottom:40px}.access-gate h1{font-family:Georgia,serif;font-weight:400;font-size:32px;line-height:1.5}
+.access-gate p{font-size:13px;line-height:1.9;color:#829079}.access-gate .access-note{font-size:11px;margin:25px 0 15px}.access-gate .primary{margin:16px 0}

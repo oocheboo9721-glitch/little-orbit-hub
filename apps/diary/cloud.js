@@ -43,6 +43,14 @@ export async function initializeCloud(onUser) {
   );
   return {
     unsubscribe,
+    allowed: async () => {
+      const user = services.auth.currentUser;
+      if (!user || !user.emailVerified) return false;
+      const owner = await services.fs.getDocFromServer(
+        services.fs.doc(services.db, 'privateAccess', 'owner')
+      );
+      return services.auth.currentUser?.uid === user.uid && owner.exists() && owner.data().uid === user.uid;
+    },
     user: () => services.auth.currentUser,
     login: async () => {
       const provider = new services.authSDK.GoogleAuthProvider();

@@ -9,7 +9,10 @@ service cloud.firestore {
     function isAuthenticated() { return request.auth != null; }
     function isOwner(uid) {
       return isAuthenticated() && request.auth.uid == uid
-        && request.auth.token.firebase.sign_in_provider == 'google.com';
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/privateAccess/owner)
+        && get(/databases/$(database)/documents/privateAccess/owner).data.uid == request.auth.uid;
     }
     function isValidEntry(data, entryId) {
       return data.keys().hasAll(['date','title','body','mood','createdAt','updatedAt'])
@@ -23,6 +26,14 @@ service cloud.firestore {
         && data.mood in ['happy','calm','okay','sad','tired']
         && data.createdAt is timestamp && data.updatedAt is timestamp
         && data.updatedAt == request.time;
+    }
+    // Provision this document only with trusted admin access. Client writes are denied.
+    match /privateAccess/owner {
+      allow get: if isAuthenticated()
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email_verified == true
+        && resource.data.uid == request.auth.uid;
+      allow list, create, update, delete: if false;
     }
     match /users/{uid}/entries/{entryId} {
       allow get: if isOwner(uid);

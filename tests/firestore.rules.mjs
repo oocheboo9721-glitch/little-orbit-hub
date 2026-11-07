@@ -37,7 +37,8 @@ before(async () => {
       ),
     },
   });
-  const claims = { firebase: { sign_in_provider: "google.com" } };
+  await env.withSecurityRulesDisabled(async context => { await setDoc(doc(context.firestore(), "privateAccess/owner"), {uid:"alice"}); });
+  const claims = { email_verified: true, firebase: { sign_in_provider: "google.com" } };
   alice = env.authenticatedContext("alice", claims).firestore();
   bob = env.authenticatedContext("bob", claims).firestore();
   anon = env.unauthenticatedContext().firestore();
@@ -195,4 +196,22 @@ test("unknown subcollections and public profiles denied", async () => {
     }),
   );
   await assertFails(getDoc(doc(bob, "users/alice")));
+});
+
+test("other Google users cannot use their own namespace or claim owner access",async()=>{
+ await assertFails(setDoc(doc(bob,'users/bob/entries/2026-11-07'),entry()));
+ await assertFails(getDocs(query(collection(bob,'users/bob/entries'),limit(200))));
+ await assertFails(getDoc(doc(bob,'privateAccess/owner')));
+ await assertFails(setDoc(doc(bob,'privateAccess/owner'),{uid:'bob'}));
+ await assertFails(updateDoc(doc(alice,'privateAccess/owner'),{uid:'bob'}));
+ await assertFails(deleteDoc(doc(alice,'privateAccess/owner')));
+ await assertSucceeds(getDoc(doc(alice,'privateAccess/owner')));
+});
+test("unverified or missing owner configuration denies all diary access",async()=>{
+ const unverified=env.authenticatedContext('alice',{email_verified:false,firebase:{sign_in_provider:'google.com'}}).firestore();
+ await assertFails(getDoc(doc(unverified,path)));
+ await env.withSecurityRulesDisabled(async c=>{await deleteDoc(doc(c.firestore(),'privateAccess/owner'));});
+ await assertFails(getDoc(doc(alice,path)));
+ await assertFails(setDoc(doc(alice,path),entry()));
+ await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'privateAccess/owner'),{uid:'alice'});});
 });

@@ -14,9 +14,19 @@
       content="하루의 마음을 차곡차곡 담는 로컬 일기장"
     />
     <link rel="stylesheet" href="style.css" />
-    <script type="module" src="app.js"></script>
+    <script type="module" src="gate.js"></script>
   </head>
-  <body>
+  <body class="access-locked">
+    <section id="access-gate" class="access-gate" aria-labelledby="access-title">
+      <a href="../../" class="brand">◒ 하루의 조각</a>
+      <p class="eyebrow">ONLY YOUR LITTLE MOMENTS</p>
+      <h1 id="access-title">나만의 기록을 위한<br>작은 문</h1>
+      <p id="access-message" role="status">접근 권한을 확인하고 있어요.</p>
+      <button id="gate-login" class="primary" hidden>Google로 로그인</button>
+      <button id="gate-switch" class="quiet" hidden>다른 계정으로 로그인</button>
+      <p class="access-note">허용된 본인 계정만 일기 기능을 사용할 수 있어요.</p>
+      <a href="../../privacy.html" class="quiet">개인정보 안내</a>
+    </section>
     <aside class="sidebar">
       <a class="brand" href="../../"
         >◒ <span>하루의 조각<small>MY LITTLE JOURNAL</small></span></a
