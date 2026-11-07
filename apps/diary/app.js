@@ -1,36 +1,394 @@
-import {localStore} from './store.js';
-import {configured,initializeCloud} from './cloud.js';
-const $ = s => document.querySelector(s);
-const moods = {happy:['☀','행복해요'],calm:['☘','평온해요'],okay:['◡','그저 그래요'],sad:['☂','슬퍼요'],tired:['☾','지쳤어요']};
-let entries=[], editing=null, selectedMood='calm', original='', toastTimer, store=localStore(), mode='local',cloud=null,generation=0,hasMore=false,loading=false,cloudEpoch=0;
-const today=()=>new Date().toLocaleDateString('sv-SE');
-const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function toast(text){$('#toast').textContent=text;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),3000)}
-
-function dateText(day){return new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'}).format(new Date(day+'T12:00:00'))}
-function render(){
- const query=$('#search').value.trim().toLowerCase(), month=$('#month-filter').value, mood=$('#mood-filter').value;
- const list=entries.filter(e=>(!query||(e.title+' '+e.body).toLowerCase().includes(query))&&(!month||e.date.startsWith(month))&&(!mood||e.mood===mood));
- $('#total').textContent=entries.length;$('#nav-count').textContent=entries.length;$('#result-count').textContent=list.length;$('#month-count').textContent=entries.filter(e=>e.date.startsWith(today().slice(0,7))).length;
- const counts={};entries.forEach(e=>counts[e.mood]=(counts[e.mood]||0)+1);const common=Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];$('#common-mood').textContent=common?moods[common].join(' '):'아직 빈 페이지';
- $('#new-entry').disabled=!store;$('#load-more').hidden=!hasMore;$('#entries').innerHTML=list.length?list.map(e=>`<button class="card" data-id="${e.id}" aria-label="${escape(e.title)} 일기 열기"><div class="card-top"><span>${dateText(e.date)}</span><span class="mood-pill">${moods[e.mood].join(' ')}</span></div><h3>${escape(e.title)}</h3><p>${escape(e.body)}</p><div class="card-foot"><span>${e.body.length.toLocaleString()}자의 소중한 기록</span><span>읽어보기 ↗</span></div></button>`).join(''):`<div class="empty"><span class="empty-icon">▤</span><h3>${entries.length?'찾는 일기가 없어요':'아직 쓰이지 않은, 당신의 이야기'}</h3><p>${entries.length?'검색어나 필터를 바꿔 다시 찾아보세요.':'완벽한 하루가 아니어도 괜찮아요.<br>오늘의 작은 순간부터 남겨볼까요?'}</p><button class="primary" id="empty-action">${entries.length?'필터 초기화':'첫 일기 남기기 ＋'}</button></div>`;
- document.querySelectorAll('.card').forEach(el=>el.onclick=()=>openEditor(entries.find(e=>e.id===el.dataset.id)));
- if($('#empty-action'))$('#empty-action').onclick=entries.length?reset:()=>openEditor();
+import { localStore } from "./store.js";
+import { configured, initializeCloud } from "./cloud.js";
+const $ = (s) => document.querySelector(s);
+const moods = {
+  happy: ["☀", "행복해요"],
+  calm: ["☘", "평온해요"],
+  okay: ["◡", "그저 그래요"],
+  sad: ["☂", "슬퍼요"],
+  tired: ["☾", "지쳤어요"],
+};
+let entries = [],
+  editing = null,
+  selectedMood = "calm",
+  original = "",
+  toastTimer,
+  store = localStore(),
+  mode = "local",
+  cloud = null,
+  generation = 0,
+  hasMore = false,
+  loading = false,
+  cloudEpoch = 0;
+const today = () => new Date().toLocaleDateString("sv-SE");
+const escape = (s) =>
+  String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+function toast(text) {
+  $("#toast").textContent = text;
+  $("#toast").classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("#toast").classList.remove("visible"), 3000);
 }
-function snapshot(){return JSON.stringify({date:$('#entry-date').value,title:$('#entry-title').value,body:$('#entry-body').value,mood:selectedMood})}
-function renderMoods(){ $('#moods').innerHTML=Object.entries(moods).map(([key,[icon,label]])=>`<button type="button" data-mood="${key}" class="${selectedMood===key?'selected':''}" aria-pressed="${selectedMood===key}">${icon} ${label}</button>`).join('');document.querySelectorAll('[data-mood]').forEach(b=>b.onclick=()=>{selectedMood=b.dataset.mood;renderMoods()})}
-function openEditor(entry){if(loading){toast('일기를 불러오는 중이에요.');return}if(!store){toast('클라우드에 로그인한 뒤 기록할 수 있어요.');return}editing=entry?.id??null;$('#entry-date').value=entry?.date||today();$('#entry-date').disabled=!!entry;$('#entry-title').value=entry?.title||'';$('#entry-body').value=entry?.body||'';selectedMood=entry?.mood||'calm';$('#editor-title').textContent=entry?'그날의 조각 돌아보기':'오늘의 조각 남기기';$('#delete-entry').classList.toggle('hidden',!entry);$('#form-error').textContent='';$('#char-count').textContent=$('#entry-body').value.length.toLocaleString()+'자';renderMoods();original=snapshot();$('#editor').showModal()}
-function closeEditor(){if($('#save').disabled||$('#delete-entry').disabled){toast('저장 작업이 끝날 때까지 잠시 기다려 주세요.');return}if(snapshot()!==original&&!confirm('저장하지 않은 내용이 있어요. 닫을까요?'))return;$('#editor').close()}
-function reset(){$('#search').value='';$('#month-filter').value='';$('#mood-filter').value='';render()}
-$('#new-entry').onclick=()=>openEditor();$('#close-editor').onclick=closeEditor;$('#cancel').onclick=closeEditor;$('#editor').addEventListener('cancel',e=>{e.preventDefault();closeEditor()});$('#entry-body').oninput=()=>$('#char-count').textContent=$('#entry-body').value.length.toLocaleString()+'자';
-$('#entry-form').onsubmit=async e=>{e.preventDefault();$('#save').disabled=true;$('#delete-entry').disabled=true;$('#form-error').textContent='';try{const taskGeneration=generation;const data=await store.save(JSON.parse(snapshot()),editing);if(taskGeneration!==generation)return;entries=entries.filter(x=>x.id!==data.id).concat(data).sort((a,b)=>b.date.localeCompare(a.date));$('#editor').close();render();toast('오늘의 조각을 저장했어요.')}catch(err){$('#form-error').textContent=message(err)}finally{$('#save').disabled=false;$('#delete-entry').disabled=false}};
-$('#delete-entry').onclick=async()=>{if(!confirm('이 일기를 삭제할까요? 삭제한 내용은 되돌릴 수 없어요.'))return;$('#delete-entry').disabled=true;$('#save').disabled=true;try{const taskGeneration=generation;await store.remove(editing);if(taskGeneration!==generation)return;entries=entries.filter(e=>e.id!==editing);$('#editor').close();render();toast('일기를 삭제했어요.')}catch(e){$('#form-error').textContent=message(e)}finally{$('#delete-entry').disabled=false;$('#save').disabled=false}};
-['#search','#mood-filter','#month-filter'].forEach(s=>$(s).addEventListener('input',render));$('#reset').onclick=reset;$('#all-nav').onclick=reset;$('#today-nav').onclick=()=>openEditor(entries.find(e=>e.date===today()));
-$('#export').onclick=async()=>{if(!store||loading)return;const backupGeneration=generation,backupMode=mode;try{let all=(await store.list()).entries;if(mode==='cloud'){toast('백업을 준비하고 있어요…');const backup=cloud.store();let page=await backup.list();all=page.entries;while(page.hasMore){if(backupGeneration!==generation)throw Error('계정이 변경됐어요.');page=await backup.list(true);all.push(...page.entries)}}if(backupGeneration!==generation)throw Error('계정이 변경됐어요.');const blob=new Blob([JSON.stringify({version:1,storage:backupMode,exported_at:new Date().toISOString(),entries:all},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='하루의조각-'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('백업을 내려받았어요. 개인정보가 담긴 파일은 소중히 보관해 주세요.')}catch{toast('백업하지 못했어요. 연결 상태를 확인해 주세요.')}};
-window.addEventListener('beforeunload',e=>{if($('#editor').open&&snapshot()!==original){e.preventDefault();e.returnValue=''}});
-function message(error){const messages={'auth/popup-blocked':'팝업이 차단됐어요. 이 사이트의 팝업을 허용한 뒤 다시 눌러주세요.','auth/popup-closed-by-user':'로그인을 취소했어요.','auth/unauthorized-domain':'이 배포 도메인이 Firebase 로그인에 아직 등록되지 않았어요.','auth/operation-not-allowed':'Firebase에서 Google 로그인 제공자를 활성화해야 해요.','permission-denied':'접근 권한이 없어요. 로그인 상태와 Firebase 보안 규칙을 확인해 주세요.','unavailable':'서버에 연결하지 못했어요. 네트워크를 확인해 주세요.'};return messages[error.code]||(error.code?'클라우드 연결에 실패했어요. 잠시 후 다시 시도해 주세요.':error.message)}
-async function load(more=false){if(!store)return;const current=generation;loading=true;$('#entries').setAttribute('aria-busy','true');$('#new-entry').disabled=true;$('#load-more').disabled=true;try{const page=await store.list(more);if(current!==generation)return;entries=more?[...new Map([...entries,...page.entries].map(e=>[e.id,e])).values()]:page.entries;hasMore=page.hasMore;render()}catch(e){if(current!==generation)return;$('#entries').innerHTML='<div class="empty"><h3>일기를 불러오지 못했어요.</h3><p></p><button id="retry" class="primary">다시 시도</button></div>';$('#entries .empty p').textContent=message(e);$('#retry').onclick=()=>load(more);toast(message(e))}finally{if(current===generation){loading=false;$('#entries').setAttribute('aria-busy','false');$('#new-entry').disabled=!store;$('#load-more').disabled=false}}}
-async function changeMode(){const epoch=++cloudEpoch;generation++;entries=[];hasMore=false;loading=false;mode=$('#storage-mode').value;cloud?.unsubscribe();cloud=null;store=null;$('#login').hidden=true;$('#logout').hidden=true;$('#new-entry').disabled=true;render();if(mode==='local'){store=localStore();$('#storage-hint').textContent='이 기기에만 저장돼요. 브라우저 데이터를 지우면 일기도 사라져요.';await load();return}$('#storage-hint').textContent=configured?'Google 로그인 후 본인 일기만 불러와요. 로컬 일기는 자동 업로드되지 않아요.':'Firebase 프로젝트가 아직 연결되지 않았어요. 이 기기에 저장 모드는 사용할 수 있어요.';if(!configured)return;
- function updateUser(user){if(mode!=='cloud'||cloudEpoch!==epoch||!cloud)return;generation++;entries=[];hasMore=false;loading=false;$('#editor').close();$('#login').hidden=!!user;$('#logout').hidden=!user;store=user?cloud.store():null;$('#storage-hint').textContent=user?'본인 계정의 일기만 표시해요. 통계·검색은 불러온 기록 기준이며 백업은 전체 기록을 포함해요.':'로그인하면 클라우드 일기를 사용할 수 있어요. 로컬 일기는 업로드되지 않아요.';render();if(store)load()}
- try{const result=await initializeCloud(updateUser);if(cloudEpoch!==epoch){result.unsubscribe();return}cloud=result;updateUser(cloud.user())}catch(e){toast(message(e));$('#storage-hint').textContent=message(e)}}
-$('#storage-mode').onchange=changeMode;$('#login').onclick=async()=>{if(!cloud)return;$('#login').disabled=true;try{await cloud.login()}catch(e){toast(message(e))}finally{$('#login').disabled=false}};$('#logout').onclick=async()=>{try{await cloud.logout()}catch(e){toast(message(e))}};$('#load-more').onclick=()=>load(true);load();
+
+function dateText(day) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  }).format(new Date(day + "T12:00:00"));
+}
+function render() {
+  const query = $("#search").value.trim().toLowerCase(),
+    month = $("#month-filter").value,
+    mood = $("#mood-filter").value;
+  const list = entries.filter(
+    (e) =>
+      (!query || (e.title + " " + e.body).toLowerCase().includes(query)) &&
+      (!month || e.date.startsWith(month)) &&
+      (!mood || e.mood === mood),
+  );
+  $("#total").textContent = entries.length;
+  $("#nav-count").textContent = entries.length;
+  $("#result-count").textContent = list.length;
+  $("#month-count").textContent = entries.filter((e) =>
+    e.date.startsWith(today().slice(0, 7)),
+  ).length;
+  const counts = {};
+  entries.forEach((e) => (counts[e.mood] = (counts[e.mood] || 0) + 1));
+  const common = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+  $("#common-mood").textContent = common
+    ? moods[common].join(" ")
+    : "아직 빈 페이지";
+  $("#new-entry").disabled = !store;
+  $("#load-more").hidden = !hasMore;
+  $("#entries").innerHTML = list.length
+    ? list
+        .map(
+          (e) =>
+            `<button class="card" data-id="${e.id}" aria-label="${escape(e.title)} 일기 열기"><div class="card-top"><span>${dateText(e.date)}</span><span class="mood-pill">${moods[e.mood].join(" ")}</span></div><h3>${escape(e.title)}</h3><p>${escape(e.body)}</p><div class="card-foot"><span>${e.body.length.toLocaleString()}자의 소중한 기록</span><span>읽어보기 ↗</span></div></button>`,
+        )
+        .join("")
+    : `<div class="empty"><span class="empty-icon">▤</span><h3>${entries.length ? "찾는 일기가 없어요" : "아직 쓰이지 않은, 당신의 이야기"}</h3><p>${entries.length ? "검색어나 필터를 바꿔 다시 찾아보세요." : "완벽한 하루가 아니어도 괜찮아요.<br>오늘의 작은 순간부터 남겨볼까요?"}</p><button class="primary" id="empty-action">${entries.length ? "필터 초기화" : "첫 일기 남기기 ＋"}</button></div>`;
+  document
+    .querySelectorAll(".card")
+    .forEach(
+      (el) =>
+        (el.onclick = () =>
+          openEditor(entries.find((e) => e.id === el.dataset.id))),
+    );
+  if ($("#empty-action"))
+    $("#empty-action").onclick = entries.length ? reset : () => openEditor();
+}
+function snapshot() {
+  return JSON.stringify({
+    date: $("#entry-date").value,
+    title: $("#entry-title").value,
+    body: $("#entry-body").value,
+    mood: selectedMood,
+  });
+}
+function renderMoods() {
+  $("#moods").innerHTML = Object.entries(moods)
+    .map(
+      ([key, [icon, label]]) =>
+        `<button type="button" data-mood="${key}" class="${selectedMood === key ? "selected" : ""}" aria-pressed="${selectedMood === key}">${icon} ${label}</button>`,
+    )
+    .join("");
+  document.querySelectorAll("[data-mood]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        selectedMood = b.dataset.mood;
+        renderMoods();
+      }),
+  );
+}
+function openEditor(entry) {
+  if (loading) {
+    toast("일기를 불러오는 중이에요.");
+    return;
+  }
+  if (!store) {
+    toast("클라우드에 로그인한 뒤 기록할 수 있어요.");
+    return;
+  }
+  editing = entry?.id ?? null;
+  $("#entry-date").value = entry?.date || today();
+  $("#entry-date").disabled = !!entry;
+  $("#entry-title").value = entry?.title || "";
+  $("#entry-body").value = entry?.body || "";
+  selectedMood = entry?.mood || "calm";
+  $("#editor-title").textContent = entry
+    ? "그날의 조각 돌아보기"
+    : "오늘의 조각 남기기";
+  $("#delete-entry").classList.toggle("hidden", !entry);
+  $("#form-error").textContent = "";
+  $("#char-count").textContent =
+    $("#entry-body").value.length.toLocaleString() + "자";
+  renderMoods();
+  original = snapshot();
+  $("#editor").showModal();
+}
+function closeEditor() {
+  if ($("#save").disabled || $("#delete-entry").disabled) {
+    toast("저장 작업이 끝날 때까지 잠시 기다려 주세요.");
+    return;
+  }
+  if (
+    snapshot() !== original &&
+    !confirm("저장하지 않은 내용이 있어요. 닫을까요?")
+  )
+    return;
+  $("#editor").close();
+}
+function reset() {
+  $("#search").value = "";
+  $("#month-filter").value = "";
+  $("#mood-filter").value = "";
+  render();
+}
+$("#new-entry").onclick = () => openEditor();
+$("#close-editor").onclick = closeEditor;
+$("#cancel").onclick = closeEditor;
+$("#editor").addEventListener("cancel", (e) => {
+  e.preventDefault();
+  closeEditor();
+});
+$("#entry-body").oninput = () =>
+  ($("#char-count").textContent =
+    $("#entry-body").value.length.toLocaleString() + "자");
+$("#entry-form").onsubmit = async (e) => {
+  e.preventDefault();
+  $("#save").disabled = true;
+  $("#delete-entry").disabled = true;
+  $("#form-error").textContent = "";
+  try {
+    const taskGeneration = generation;
+    const data = await store.save(JSON.parse(snapshot()), editing);
+    if (taskGeneration !== generation) return;
+    entries = entries
+      .filter((x) => x.id !== data.id)
+      .concat(data)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    $("#editor").close();
+    render();
+    toast("오늘의 조각을 저장했어요.");
+  } catch (err) {
+    $("#form-error").textContent = message(err);
+  } finally {
+    $("#save").disabled = false;
+    $("#delete-entry").disabled = false;
+  }
+};
+$("#delete-entry").onclick = async () => {
+  if (!confirm("이 일기를 삭제할까요? 삭제한 내용은 되돌릴 수 없어요.")) return;
+  $("#delete-entry").disabled = true;
+  $("#save").disabled = true;
+  try {
+    const taskGeneration = generation;
+    await store.remove(editing);
+    if (taskGeneration !== generation) return;
+    entries = entries.filter((e) => e.id !== editing);
+    $("#editor").close();
+    render();
+    toast("일기를 삭제했어요.");
+  } catch (e) {
+    $("#form-error").textContent = message(e);
+  } finally {
+    $("#delete-entry").disabled = false;
+    $("#save").disabled = false;
+  }
+};
+["#search", "#mood-filter", "#month-filter"].forEach((s) =>
+  $(s).addEventListener("input", render),
+);
+$("#reset").onclick = reset;
+$("#all-nav").onclick = reset;
+$("#today-nav").onclick = () =>
+  openEditor(entries.find((e) => e.date === today()));
+$("#export").onclick = async () => {
+  if (!store || loading) return;
+  const backupGeneration = generation,
+    backupMode = mode;
+  try {
+    let all = mode === "local" ? (await store.list()).entries : entries;
+    if (mode === "cloud") {
+      toast("백업을 준비하고 있어요…");
+      const backup = cloud.store();
+      let page = await backup.list();
+      all = page.entries;
+      while (page.hasMore) {
+        if (backupGeneration !== generation) throw Error("계정이 변경됐어요.");
+        page = await backup.list(true);
+        all.push(...page.entries);
+      }
+    }
+    if (backupGeneration !== generation) throw Error("계정이 변경됐어요.");
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          {
+            version: 1,
+            storage: backupMode,
+            exported_at: new Date().toISOString(),
+            entries: all,
+          },
+          null,
+          2,
+        ),
+      ],
+      { type: "application/json" },
+    );
+    const url = URL.createObjectURL(blob),
+      a = document.createElement("a");
+    a.href = url;
+    a.download = "하루의조각-" + today() + ".json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast("백업을 내려받았어요. 개인정보가 담긴 파일은 소중히 보관해 주세요.");
+  } catch {
+    toast("백업하지 못했어요. 연결 상태를 확인해 주세요.");
+  }
+};
+window.addEventListener("beforeunload", (e) => {
+  if ($("#editor").open && snapshot() !== original) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
+function message(error) {
+  const messages = {
+    "auth/popup-blocked":
+      "팝업이 차단됐어요. 이 사이트의 팝업을 허용한 뒤 다시 눌러주세요.",
+    "auth/popup-closed-by-user": "로그인을 취소했어요.",
+    "auth/unauthorized-domain":
+      "이 배포 도메인이 Firebase 로그인에 아직 등록되지 않았어요.",
+    "auth/operation-not-allowed":
+      "Firebase에서 Google 로그인 제공자를 활성화해야 해요.",
+    "permission-denied":
+      "접근 권한이 없어요. 로그인 상태와 Firebase 보안 규칙을 확인해 주세요.",
+    unavailable: "서버에 연결하지 못했어요. 네트워크를 확인해 주세요.",
+  };
+  return (
+    messages[error.code] ||
+    (error.code
+      ? "클라우드 연결에 실패했어요. 잠시 후 다시 시도해 주세요."
+      : error.message)
+  );
+}
+async function load(more = false) {
+  if (!store) return;
+  const current = generation;
+  loading = true;
+  $("#entries").setAttribute("aria-busy", "true");
+  $("#new-entry").disabled = true;
+  $("#load-more").disabled = true;
+  try {
+    const page = await store.list(more);
+    if (current !== generation) return;
+    entries = more
+      ? [
+          ...new Map(
+            [...entries, ...page.entries].map((e) => [e.id, e]),
+          ).values(),
+        ]
+      : page.entries;
+    hasMore = page.hasMore;
+    render();
+  } catch (e) {
+    if (current !== generation) return;
+    $("#entries").innerHTML =
+      '<div class="empty"><h3>일기를 불러오지 못했어요.</h3><p></p><button id="retry" class="primary">다시 시도</button></div>';
+    $("#entries .empty p").textContent = message(e);
+    $("#retry").onclick = () => load(more);
+    toast(message(e));
+  } finally {
+    if (current === generation) {
+      loading = false;
+      $("#entries").setAttribute("aria-busy", "false");
+      $("#new-entry").disabled = !store;
+      $("#load-more").disabled = false;
+    }
+  }
+}
+async function changeMode() {
+  const epoch = ++cloudEpoch;
+  generation++;
+  entries = [];
+  hasMore = false;
+  loading = false;
+  mode = $("#storage-mode").value;
+  cloud?.unsubscribe();
+  cloud = null;
+  store = null;
+  $("#login").hidden = true;
+  $("#logout").hidden = true;
+  $("#new-entry").disabled = true;
+  render();
+  if (mode === "local") {
+    store = localStore();
+    $("#storage-hint").textContent =
+      "이 기기에만 저장돼요. 브라우저 데이터를 지우면 일기도 사라져요.";
+    await load();
+    return;
+  }
+  $("#storage-hint").textContent = configured
+    ? "Google 로그인 후 본인 일기만 불러와요. 로컬 일기는 자동 업로드되지 않아요."
+    : "Firebase 프로젝트가 아직 연결되지 않았어요. 이 기기에 저장 모드는 사용할 수 있어요.";
+  if (!configured) return;
+  function updateUser(user) {
+    if (mode !== "cloud" || cloudEpoch !== epoch || !cloud) return;
+    generation++;
+    entries = [];
+    hasMore = false;
+    loading = false;
+    $("#editor").close();
+    $("#login").hidden = !!user;
+    $("#logout").hidden = !user;
+    store = user ? cloud.store() : null;
+    $("#storage-hint").textContent = user
+      ? "본인 계정의 일기만 표시해요. 통계·검색은 불러온 기록 기준이며 백업은 전체 기록을 포함해요."
+      : "로그인하면 클라우드 일기를 사용할 수 있어요. 로컬 일기는 업로드되지 않아요.";
+    render();
+    if (store) load();
+  }
+  try {
+    const result = await initializeCloud(updateUser);
+    if (cloudEpoch !== epoch) {
+      result.unsubscribe();
+      return;
+    }
+    cloud = result;
+    updateUser(cloud.user());
+  } catch (e) {
+    toast(message(e));
+    $("#storage-hint").textContent = message(e);
+  }
+}
+$("#storage-mode").onchange = changeMode;
+$("#login").onclick = async () => {
+  if (!cloud) return;
+  $("#login").disabled = true;
+  try {
+    await cloud.login();
+  } catch (e) {
+    toast(message(e));
+  } finally {
+    $("#login").disabled = false;
+  }
+};
+$("#logout").onclick = async () => {
+  try {
+    await cloud.logout();
+  } catch (e) {
+    toast(message(e));
+  }
+};
+$("#load-more").onclick = () => load(true);
+load();

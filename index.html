@@ -1,1 +1,180 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"><title>작은 궤도 — 나의 웹앱 허브</title><meta name="description" content="작은 아이디어를 나만의 도구로. 일기장부터 시작하는 웹앱 작업실."><link rel="stylesheet" href="assets/hub.css"><script type="module" src="assets/hub.js"></script></head><body><aside class="sidebar"><a class="brand" href="./"><span class="logo">◌</span><span>작은 궤도<small>MY APP UNIVERSE</small></span></a><p class="sidebar-note">작은 아이디어가<br>나만의 도구가 되는 곳.</p><button class="nav selected" id="all-apps">▦ <span>나의 앱</span><span id="nav-count">1</span></button><button class="nav" id="favorite-apps">☆ <span>즐겨찾기</span></button><a class="nav" href="apps/diary/">▤ <span>일기 쓰러 가기</span></a><div class="sidebar-footer"><span class="dot"></span> 하나씩, 나만의 속도로<p>오늘도 작은 궤도를 그려요.</p><a href="privacy.html">개인정보와 데이터 안내 ↗</a></div></aside><main><header><span>나의 바이브 코딩 작업실</span><span class="badge">✧ PERSONAL APP HUB</span></header><section class="hero"><div><p class="eyebrow">SMALL IDEAS. YOUR OWN UNIVERSE.</p><h1>나의 아이디어가<br>머무는 작은 궤도<span>.</span></h1><p class="muted">만들고, 써보고, 조금씩 더 나답게.<br>매일의 작은 도구들을 한곳에 모았어요.</p></div><div class="orbit-art" aria-hidden="true"><div class="orbit one"></div><div class="orbit two"></div><span class="planet">✳</span><span class="satellite">✦</span><span class="mini-planet"></span><span class="orbit-label">a little space for your ideas</span></div></section><section class="summary"><div><span class="summary-icon">▦</span><div><span>내가 모은 도구</span><strong id="app-count">1 <small>개</small></strong></div></div><div><span class="summary-icon peach">☆</span><div><span>자주 찾는 도구</span><strong id="fav-count">0 <small>개</small></strong></div></div><div><span class="summary-icon lavender">♧</span><div><span>첫 번째 작은 시작</span><strong class="summary-text">나만의 일기장</strong></div></div></section><section><div class="section-heading"><div><h2>나의 앱 컬렉션 <span id="result-count">1</span></h2><p class="muted">생각을 도구로, 일상을 조금 더 편하게</p></div><button class="primary" id="add-app">＋ 앱 추가하기</button></div><div class="toolbar"><label class="search">⌕ <input id="search" type="search" placeholder="앱 이름이나 설명으로 찾아보세요" aria-label="앱 검색"></label><select id="category" aria-label="앱 분류"><option value="">모든 분류</option><option>일상 기록</option><option>생산성</option><option>수업 도구</option><option>기타</option></select></div><div class="apps-grid" id="apps"></div></section><section class="note"><span>✧</span><div><h3>다음 궤도에는 어떤 도구가 올라올까요?</h3><p>새로 만든 웹앱의 주소를 등록해 나만의 컬렉션을 넓혀보세요.<br>앱 목록과 즐겨찾기는 이 브라우저에만 저장돼요.</p></div><button id="add-another" class="text-button">새 아이디어 담기 ↗</button></section><footer><span>작은 시작이 모여, 나만의 우주가 됩니다.</span><a href="privacy.html">개인정보 안내</a><span>작은 궤도 © 2026</span></footer></main><dialog id="app-dialog"><form id="app-form"><div class="dialog-head"><div><p class="eyebrow">EXPAND YOUR ORBIT</p><h2 id="form-heading">새로운 앱 담기</h2></div><button type="button" id="close" class="icon-button" aria-label="닫기">×</button></div><label>앱 이름<input id="name" maxlength="40" required placeholder="나만의 멋진 도구"></label><label>한 줄 소개<textarea id="description" maxlength="160" required placeholder="어떤 순간에 도움이 되는 앱인가요?"></textarea></label><label>공개 HTTPS 주소<input id="url" type="url" required placeholder="https://example.com/"></label><label>분류<select id="app-category"><option>생산성</option><option>수업 도구</option><option>일상 기록</option><option>기타</option></select></label><p class="muted">등록한 앱은 이 브라우저에만 보이며, 공개 허브 소스에 게시되지 않아요.</p><p id="form-error" role="alert"></p><div class="dialog-actions"><button type="button" id="cancel" class="text-button">취소</button><button class="primary" type="submit">앱 저장하기 ↗</button></div></form></dialog><div id="toast" role="status"></div></body></html>
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <title>작은 궤도 — 나의 웹앱 허브</title>
+    <meta
+      name="description"
+      content="작은 아이디어를 나만의 도구로. 일기장부터 시작하는 웹앱 작업실."
+    />
+    <link rel="stylesheet" href="assets/hub.css" />
+    <script type="module" src="assets/hub.js"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="./"
+        ><span class="logo">◌</span
+        ><span>작은 궤도<small>MY APP UNIVERSE</small></span></a
+      >
+      <p class="sidebar-note">작은 아이디어가<br />나만의 도구가 되는 곳.</p>
+      <button class="nav selected" id="all-apps">
+        ▦ <span>나의 앱</span><span id="nav-count">1</span></button
+      ><button class="nav" id="favorite-apps">☆ <span>즐겨찾기</span></button
+      ><a class="nav" href="apps/diary/">▤ <span>일기 쓰러 가기</span></a>
+      <div class="sidebar-footer">
+        <span class="dot"></span> 하나씩, 나만의 속도로
+        <p>오늘도 작은 궤도를 그려요.</p>
+        <a href="privacy.html">개인정보와 데이터 안내 ↗</a>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <span>나의 바이브 코딩 작업실</span
+        ><span class="badge">✧ PERSONAL APP HUB</span>
+      </header>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">SMALL IDEAS. YOUR OWN UNIVERSE.</p>
+          <h1>나의 아이디어가<br />머무는 작은 궤도<span>.</span></h1>
+          <p class="muted">
+            만들고, 써보고, 조금씩 더 나답게.<br />매일의 작은 도구들을 한곳에
+            모았어요.
+          </p>
+        </div>
+        <div class="orbit-art" aria-hidden="true">
+          <div class="orbit one"></div>
+          <div class="orbit two"></div>
+          <span class="planet">✳</span><span class="satellite">✦</span
+          ><span class="mini-planet"></span
+          ><span class="orbit-label">a little space for your ideas</span>
+        </div>
+      </section>
+      <section class="summary">
+        <div>
+          <span class="summary-icon">▦</span>
+          <div>
+            <span>내가 모은 도구</span
+            ><strong id="app-count">1 <small>개</small></strong>
+          </div>
+        </div>
+        <div>
+          <span class="summary-icon peach">☆</span>
+          <div>
+            <span>자주 찾는 도구</span
+            ><strong id="fav-count">0 <small>개</small></strong>
+          </div>
+        </div>
+        <div>
+          <span class="summary-icon lavender">♧</span>
+          <div>
+            <span>첫 번째 작은 시작</span
+            ><strong class="summary-text">나만의 일기장</strong>
+          </div>
+        </div>
+      </section>
+      <section>
+        <div class="section-heading">
+          <div>
+            <h2>나의 앱 컬렉션 <span id="result-count">1</span></h2>
+            <p class="muted">생각을 도구로, 일상을 조금 더 편하게</p>
+          </div>
+          <button class="primary" id="add-app">＋ 앱 추가하기</button>
+        </div>
+        <div class="toolbar">
+          <label class="search"
+            >⌕
+            <input
+              id="search"
+              type="search"
+              placeholder="앱 이름이나 설명으로 찾아보세요"
+              aria-label="앱 검색" /></label
+          ><select id="category" aria-label="앱 분류">
+            <option value="">모든 분류</option>
+            <option>일상 기록</option>
+            <option>생산성</option>
+            <option>수업 도구</option>
+            <option>기타</option>
+          </select>
+        </div>
+        <div class="apps-grid" id="apps"></div>
+      </section>
+      <section class="note">
+        <span>✧</span>
+        <div>
+          <h3>다음 궤도에는 어떤 도구가 올라올까요?</h3>
+          <p>
+            새로 만든 웹앱의 주소를 등록해 나만의 컬렉션을 넓혀보세요.<br />앱
+            목록과 즐겨찾기는 이 브라우저에만 저장돼요.
+          </p>
+        </div>
+        <button id="add-another" class="text-button">
+          새 아이디어 담기 ↗
+        </button>
+      </section>
+      <footer>
+        <span>작은 시작이 모여, 나만의 우주가 됩니다.</span
+        ><a href="privacy.html">개인정보 안내</a><span>작은 궤도 © 2026</span>
+      </footer>
+    </main>
+    <dialog id="app-dialog">
+      <form id="app-form">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow">EXPAND YOUR ORBIT</p>
+            <h2 id="form-heading">새로운 앱 담기</h2>
+          </div>
+          <button
+            type="button"
+            id="close"
+            class="icon-button"
+            aria-label="닫기"
+          >
+            ×
+          </button>
+        </div>
+        <label
+          >앱 이름<input
+            id="name"
+            maxlength="40"
+            required
+            placeholder="나만의 멋진 도구" /></label
+        ><label
+          >한 줄 소개<textarea
+            id="description"
+            maxlength="160"
+            required
+            placeholder="어떤 순간에 도움이 되는 앱인가요?"
+          ></textarea></label
+        ><label
+          >공개 HTTPS 주소<input
+            id="url"
+            type="url"
+            required
+            placeholder="https://example.com/" /></label
+        ><label
+          >분류<select id="app-category">
+            <option>생산성</option>
+            <option>수업 도구</option>
+            <option>일상 기록</option>
+            <option>기타</option>
+          </select></label
+        >
+        <p class="muted">
+          등록한 앱은 이 브라우저에만 보이며, 공개 허브 소스에 게시되지 않아요.
+        </p>
+        <p id="form-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="cancel" class="text-button">취소</button
+          ><button class="primary" type="submit">앱 저장하기 ↗</button>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" role="status"></div>
+  </body>
+</html>

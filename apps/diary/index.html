@@ -1,7 +1,186 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>하루의 조각 — 나의 일기장</title><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-src https://*.firebaseapp.com https://accounts.google.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="description" content="하루의 마음을 차곡차곡 담는 로컬 일기장"><link rel="stylesheet" href="style.css"><script type="module" src="app.js"></script></head>
-<body><aside class="sidebar"><a class="brand" href="../../">◒ <span>하루의 조각<small>MY LITTLE JOURNAL</small></span></a><p class="side-note">지나간 하루도,<br>소중한 나의 이야기.</p><button class="nav active" id="all-nav">▤ <span>모든 일기</span><b id="nav-count">0</b></button><button class="nav" id="today-nav">◷ <span>오늘의 기록</span></button><div class="side-bottom"><span class="status-dot"></span> 나만의 기록, 차곡차곡<small>저장 위치를 선택해 사용할 수 있어요.</small><button id="export">↓ 일기 백업하기</button></div></aside>
-<main><header><span>나만의 작은 기록 공간</span><a href="../../" class="local-badge">← 앱 허브로</a></header><section class="intro"><div><p class="eyebrow">A LITTLE MOMENT, EVERY DAY</p><h1>당신의 하루는<br>어떤 모양이었나요<span>?</span></h1><p class="subtitle">평범한 순간도 글로 남기면 특별해져요.</p></div><div class="art" aria-hidden="true"><div class="sun"></div><div class="book"><span>오늘의<br>작은 조각</span><i>✳</i></div><div class="stem">❧</div><span class="spark">✧</span></div></section>
-<section class="storage-panel"><div><strong>어디에 기록할까요?</strong><p id="storage-hint">이 기기에만 저장돼요. 브라우저 데이터를 지우면 일기도 사라져요.</p></div><div class="storage-controls"><select id="storage-mode" aria-label="저장 위치"><option value="local">이 기기에 저장</option><option value="cloud">Firebase 클라우드</option></select><button id="login" class="primary" hidden>Google로 로그인</button><button id="logout" class="quiet" hidden>로그아웃</button></div></section><section class="stats"><div><span class="stat-icon">▤</span><p>쌓인 이야기<strong id="total">0<small>편</small></strong></p></div><div><span class="stat-icon peach">◴</span><p>이번 달의 기록<strong id="month-count">0<small>편</small></strong></p></div><div><span class="stat-icon lilac">♡</span><p>가장 많이 느낀 마음<strong id="common-mood" class="mood-stat">아직 빈 페이지</strong></p></div></section>
-<section class="journal"><div class="section-head"><div><h2>나의 일기장 <span id="result-count">0</span></h2><p>한 장 한 장, 나를 알아가는 시간</p></div><button class="primary" id="new-entry">＋ 새 일기 쓰기</button></div><div class="toolbar"><label class="search"><span>⌕</span><input id="search" placeholder="기억하고 싶은 순간을 찾아보세요" aria-label="일기 검색"></label><select id="mood-filter" aria-label="기분 필터"><option value="">모든 기분</option><option value="happy">☀ 행복해요</option><option value="calm">☘ 평온해요</option><option value="okay">◡ 그저 그래요</option><option value="sad">☂ 슬퍼요</option><option value="tired">☾ 지쳤어요</option></select><input type="month" id="month-filter" aria-label="월별 필터"><button id="reset" class="quiet">초기화</button></div><div id="entries" class="entries" aria-live="polite"></div><button id="load-more" class="quiet" hidden>이전 일기 더 불러오기 ↓</button></section><footer>작은 기록들이 모여, 나라는 이야기가 됩니다. <a href="../../privacy.html">개인정보 안내</a></footer></main>
-<dialog id="editor"><form id="entry-form"><div class="dialog-head"><div><p class="eyebrow">DEAR MY DIARY</p><h2 id="editor-title">오늘의 조각 남기기</h2></div><button type="button" class="close" id="close-editor" aria-label="닫기">×</button></div><label class="field">기록할 날짜<input type="date" id="entry-date" required></label><fieldset><legend>오늘의 마음</legend><div class="moods" id="moods"></div></fieldset><label class="field">제목<input id="entry-title" maxlength="120" placeholder="오늘을 한 문장으로 표현한다면?" required></label><label class="field">나의 이야기<textarea id="entry-body" maxlength="20000" placeholder="오늘 있었던 일, 문득 든 생각, 간직하고 싶은 마음…&#10;무엇이든 편하게 적어보세요." required></textarea></label><div class="editor-meta"><span id="char-count">0자</span><span>저장 위치를 확인하고 저장해 주세요</span></div><p id="form-error" role="alert"></p><div class="dialog-actions"><button type="button" id="delete-entry" class="danger">일기 삭제</button><div><button type="button" id="cancel" class="quiet">취소</button><button type="submit" class="primary" id="save">일기 저장하기 ↗</button></div></div></form></dialog><div id="toast" role="status"></div></body></html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>하루의 조각 — 나의 일기장</title>
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-src https://*.firebaseapp.com https://accounts.google.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <meta
+      name="description"
+      content="하루의 마음을 차곡차곡 담는 로컬 일기장"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="../../"
+        >◒ <span>하루의 조각<small>MY LITTLE JOURNAL</small></span></a
+      >
+      <p class="side-note">지나간 하루도,<br />소중한 나의 이야기.</p>
+      <button class="nav active" id="all-nav">
+        ▤ <span>모든 일기</span><b id="nav-count">0</b></button
+      ><button class="nav" id="today-nav">◷ <span>오늘의 기록</span></button>
+      <div class="side-bottom">
+        <span class="status-dot"></span> 나만의 기록, 차곡차곡<small
+          >저장 위치를 선택해 사용할 수 있어요.</small
+        ><button id="export">↓ 일기 백업하기</button>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <span>나만의 작은 기록 공간</span
+        ><a href="../../" class="local-badge">← 앱 허브로</a>
+      </header>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">A LITTLE MOMENT, EVERY DAY</p>
+          <h1>당신의 하루는<br />어떤 모양이었나요<span>?</span></h1>
+          <p class="subtitle">평범한 순간도 글로 남기면 특별해져요.</p>
+        </div>
+        <div class="art" aria-hidden="true">
+          <div class="sun"></div>
+          <div class="book">
+            <span>오늘의<br />작은 조각</span><i>✳</i>
+          </div>
+          <div class="stem">❧</div>
+          <span class="spark">✧</span>
+        </div>
+      </section>
+      <section class="storage-panel">
+        <div>
+          <strong>어디에 기록할까요?</strong>
+          <p id="storage-hint">
+            이 기기에만 저장돼요. 브라우저 데이터를 지우면 일기도 사라져요.
+          </p>
+        </div>
+        <div class="storage-controls">
+          <select id="storage-mode" aria-label="저장 위치">
+            <option value="local">이 기기에 저장</option>
+            <option value="cloud">Firebase 클라우드</option></select
+          ><button id="login" class="primary" hidden>Google로 로그인</button
+          ><button id="logout" class="quiet" hidden>로그아웃</button>
+        </div>
+      </section>
+      <section class="stats">
+        <div>
+          <span class="stat-icon">▤</span>
+          <p>
+            쌓인 이야기<strong id="total">0<small>편</small></strong>
+          </p>
+        </div>
+        <div>
+          <span class="stat-icon peach">◴</span>
+          <p>
+            이번 달의 기록<strong id="month-count">0<small>편</small></strong>
+          </p>
+        </div>
+        <div>
+          <span class="stat-icon lilac">♡</span>
+          <p>
+            가장 많이 느낀 마음<strong id="common-mood" class="mood-stat"
+              >아직 빈 페이지</strong
+            >
+          </p>
+        </div>
+      </section>
+      <section class="journal">
+        <div class="section-head">
+          <div>
+            <h2>나의 일기장 <span id="result-count">0</span></h2>
+            <p>한 장 한 장, 나를 알아가는 시간</p>
+          </div>
+          <button class="primary" id="new-entry">＋ 새 일기 쓰기</button>
+        </div>
+        <div class="toolbar">
+          <label class="search"
+            ><span>⌕</span
+            ><input
+              id="search"
+              placeholder="기억하고 싶은 순간을 찾아보세요"
+              aria-label="일기 검색" /></label
+          ><select id="mood-filter" aria-label="기분 필터">
+            <option value="">모든 기분</option>
+            <option value="happy">☀ 행복해요</option>
+            <option value="calm">☘ 평온해요</option>
+            <option value="okay">◡ 그저 그래요</option>
+            <option value="sad">☂ 슬퍼요</option>
+            <option value="tired">☾ 지쳤어요</option></select
+          ><input
+            type="month"
+            id="month-filter"
+            aria-label="월별 필터"
+          /><button id="reset" class="quiet">초기화</button>
+        </div>
+        <div id="entries" class="entries" aria-live="polite"></div>
+        <button id="load-more" class="quiet" hidden>
+          이전 일기 더 불러오기 ↓
+        </button>
+      </section>
+      <footer>
+        작은 기록들이 모여, 나라는 이야기가 됩니다.
+        <a href="../../privacy.html">개인정보 안내</a>
+      </footer>
+    </main>
+    <dialog id="editor">
+      <form id="entry-form">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow">DEAR MY DIARY</p>
+            <h2 id="editor-title">오늘의 조각 남기기</h2>
+          </div>
+          <button
+            type="button"
+            class="close"
+            id="close-editor"
+            aria-label="닫기"
+          >
+            ×
+          </button>
+        </div>
+        <label class="field"
+          >기록할 날짜<input type="date" id="entry-date" required
+        /></label>
+        <fieldset>
+          <legend>오늘의 마음</legend>
+          <div class="moods" id="moods"></div>
+        </fieldset>
+        <label class="field"
+          >제목<input
+            id="entry-title"
+            maxlength="120"
+            placeholder="오늘을 한 문장으로 표현한다면?"
+            required /></label
+        ><label class="field"
+          >나의 이야기<textarea
+            id="entry-body"
+            maxlength="20000"
+            placeholder="오늘 있었던 일, 문득 든 생각, 간직하고 싶은 마음…&#10;무엇이든 편하게 적어보세요."
+            required
+          ></textarea>
+        </label>
+        <div class="editor-meta">
+          <span id="char-count">0자</span
+          ><span>저장 위치를 확인하고 저장해 주세요</span>
+        </div>
+        <p id="form-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="delete-entry" class="danger">
+            일기 삭제
+          </button>
+          <div>
+            <button type="button" id="cancel" class="quiet">취소</button
+            ><button type="submit" class="primary" id="save">
+              일기 저장하기 ↗
+            </button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" role="status"></div>
+  </body>
+</html>

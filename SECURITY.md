@@ -31,3 +31,20 @@
 로컬 저장과 백업은 평문이며 Firestore는 종단간 암호화가 아닙니다. 공용 기기 및 학생·타인의 개인정보 저장에 적합한 별도 보호 정책은 구현하지 않았습니다. CDN SDK·GitHub Pages·Google 서비스의 가용성과 운영 정책에 의존합니다. HTTP 응답 헤더 설정에 제한이 있는 Pages 특성상 CSP는 meta로 제공하며 frame-ancestors 헤더는 구성하지 않았습니다.
 
 I've set up prototype Security Rules to keep the data in Firestore safe. They are designed to be secure for private diary entries by restricting access to the authenticated Google user's UID path, validating creates and updates, and rejecting unexpected fields and oversized content. However, you should review and verify them before broadly sharing your app. If you'd like, I can help you harden these rules.
+
+## Structured audit assessment
+
+```json
+{
+  "score": 4,
+  "summary": "Tested private-diary prototype: ownership and create/update validation passed emulator tests. Live project provisioning and real OAuth login remain unverified.",
+  "findings": [
+    {
+      "check": "Resource exhaustion / authenticated-user abuse",
+      "severity": "minor",
+      "issue": "Document size and query limits are enforced, but the number of documents an authenticated owner can create is not rate-limited.",
+      "recommendation": "Before broad public use, add appropriate App Check enforcement and quota monitoring; use trusted server-side rate limits if stronger abuse resistance is required."
+    }
+  ]
+}
+```
