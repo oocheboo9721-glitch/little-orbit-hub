@@ -1,0 +1,39 @@
+// Prototype rules. Data model: users/{uid}/entries/{YYYY-MM-DD}.
+// Owner comes only from the authenticated UID and path, never a writable field.
+// Required: date(string, 10, immutable, equals document ID), title(string, 1..120),
+// body(string, 1..20000), mood(enum), createdAt(timestamp, immutable),
+// updatedAt(timestamp, server time). No profile documents or public collections.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function isValidEntry(data, entryId) {
+      return data.keys().hasAll(['date','title','body','mood','createdAt','updatedAt'])
+        && data.keys().hasOnly(['date','title','body','mood','createdAt','updatedAt'])
+        && data.date is string && data.date.size() == 10
+        && data.date.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+        && entryId == data.date
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.body is string && data.body.size() > 0 && data.body.size() <= 20000
+        && data.mood is string && data.mood.size() <= 5
+        && data.mood in ['happy','calm','okay','sad','tired']
+        && data.createdAt is timestamp && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+    match /users/{uid}/entries/{entryId} {
+      allow get: if isOwner(uid);
+      allow list: if isOwner(uid) && request.query.limit != null && request.query.limit <= 200;
+      allow create: if isOwner(uid) && isValidEntry(request.resource.data,entryId)
+        && request.resource.data.createdAt == request.time;
+      allow update: if isOwner(uid) && isValidEntry(request.resource.data,entryId)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.date == resource.data.date;
+      allow delete: if isOwner(uid);
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.firebase/
+*-debug.log
+*service-account*.json
+*credentials*.json
+*private-key*
+*.pem
+*.sqlite*
+*.db
+data/
+work/
+__pycache__/
+firebase.local.json
